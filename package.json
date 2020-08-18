@@ -1,0 +1,27 @@
+{
+  "name": "sync-to-kv",
+  "version": "0.0.0",
+  "description": "Push the contents of a folder to Cloudflare KV.",
+  "bin": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/saibotsivad/sync-to-kv.git"
+  },
+  "keywords": [
+    "cloudflare",
+    "kv"
+  ],
+  "author": "saibotsivad",
+  "license": "VOL",
+  "bugs": {
+    "url": "https://github.com/saibotsivad/sync-to-kv/issues"
+  },
+  "homepage": "https://github.com/saibotsivad/sync-to-kv#readme",
+  "dependencies": {
+    "glob": "^7.1.6",
+    "httpie": "^1.1.2",
+    "many-file-hashes": "^0.5.0",
+    "p-all": "^3.0.0",
+    "sade": "^1.7.3"
+  }
+}
