@@ -226,12 +226,19 @@ module.exports = {
 		if (hash) {
 			actualPrefix = `${actualPrefix}:${hash}`
 		}
-		const fileHashes = await getItem({
-			key: `${prefix || ''}${hash || 'hashes'}`
-		})
-		return fileHashes
-			? JSON.parse(fileHashes)
-			: {}
+		try {
+			const fileHashes = await getItem({
+				key: `${prefix || ''}${hash || 'hashes'}`
+			})
+			return fileHashes
+				? JSON.parse(fileHashes)
+				: {}
+		} catch (err) {
+			if (err.statusCode === 404) {
+				return {}
+			}
+			throw err
+		}
 	},
 	putFileHashes: async ({ prefix, hash, hashMap }) => {
 		let actualPrefix = prefix || ''
