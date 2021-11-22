@@ -27,8 +27,8 @@ You can run `--help` for more details, but the flags you can pass in are:
 
 * `-i`, `--ignore` : Ignore one or more files, using glob syntax. Example `-i='**/*.test.js'`.
 * `-p`, `--prefix` : This is a prefix used for partitioning groups of KV entries within the same store. E.g. site A may use `-p='a:'` while site B may use `-p='b:'`.
-* `-f`, `--file` : Prefix used for all file entries, e.g. a file `index.html` with the default prefis (`file:`) would be stored with a key `file:index.html`.
-* `-h`, `--hash` : Name used to store the dictionary hash map of key names to hashes, which is used to improve upload time.
+* `-f`, `--file` *(default `file:`)* : Prefix used for all file entries, e.g. a file `index.html` with the default prefix (`file:`) would be stored with a key `file:index.html`.
+* `-h`, `--hash` *(default `hashes`)* : Name used to store the dictionary hash map of key names to hashes, which is used to improve upload time.
 * `-d`, `--dryrun` : Just print out what would have been updated or removed, but do not actually update KV.
 
 ## examples
