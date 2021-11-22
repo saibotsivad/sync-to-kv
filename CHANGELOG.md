@@ -20,6 +20,7 @@ Change categories are:
 
 ## [0.0.1] - 2021-11-22
 ### Fixed
+- Prefixes not handled correctly on item removal.
 - During first run, hashes not set was throwing an error. Thanks @TehShrike ❤️
 ### Security
 - Can now use either global or custom API token, instead of only the global. Thanks @TehShrike ❤️

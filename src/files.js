@@ -15,7 +15,7 @@ const getLocalFileList = async (folder, opts) => {
 	const ignore = await getMatchingFiles(
 		Array.isArray(opts.ignore)
 			? opts.ignore
-			: (opts.ignore ? [ opts.ignore ] : [])
+			: (opts.ignore ? [ opts.ignore ] : []),
 	)
 	const folderList = await glob('**', { cwd: folder })
 	return onlyFiles(folderList.filter(file => !ignore.includes(file)))

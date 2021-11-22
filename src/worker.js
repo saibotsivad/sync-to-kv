@@ -1,7 +1,6 @@
 const { readFile, stat } = require('fs').promises
 const httpie = require('httpie')
 const path = require('path')
-const promiseAll = require('p-all')
 
 const CF_PREFIX = 'https://api.cloudflare.com/client/v4/accounts'
 
@@ -10,7 +9,7 @@ const envToProp = {
 	CF_AUTH_KEY: 'authKey',
 	CF_ACCOUNT_ID: 'accountId',
 	CF_API_TOKEN: 'apiToken',
-	CF_NAMESPACE_ID: 'namespaceId'
+	CF_NAMESPACE_ID: 'namespaceId',
 }
 
 const alwaysRequired = [ 'authEmail', 'accountId', 'namespaceId' ]
@@ -34,20 +33,11 @@ const initialize = moreRequired => {
 		console.error(`One of the following options must be set as an environment variable or parameter: ${oneOfIsRequired.join(', ')}`)
 		process.exit(1)
 	}
+	opts.authHeaders = opts.apiToken
+		? { 'Authorization': 'Bearer ' + opts.apiToken }
+		: { 'X-Auth-Key': opts.authKey }
+	opts.authHeaders['X-Auth-Email'] = opts.authEmail
 	return opts
-}
-
-const getAuthHeaders = () => {
-	const { authEmail, authKey, apiToken } = initialize()
-
-	const authHeader = apiToken
-		? { 'Authorization': 'Bearer ' + apiToken }
-		: { 'X-Auth-Key': authKey }
-
-	return {
-		'X-Auth-Email': authEmail,
-		...authHeader
-	}
 }
 
 /*
@@ -58,7 +48,7 @@ curl -X GET "https://api.cloudflare.com/client/v4/accounts/01a7362d577a6c3019a47
      -H "X-Auth-Key: c2547eb745079dac9320b638f5e225cf483cc5cfdda41"
 */
 const listKeys = async ({ prefix, cursor, page = 1 }) => {
-	const { accountId, authEmail, authKey, namespaceId } = initialize()
+	const { accountId, authHeaders, namespaceId } = initialize()
 	let url = `${CF_PREFIX}/${accountId}/storage/kv/namespaces/${namespaceId}/keys?limit=1000`
 	if (cursor) {
 		url += `&cursor=${cursor}`
@@ -67,7 +57,10 @@ const listKeys = async ({ prefix, cursor, page = 1 }) => {
 		url += `&prefix=${prefix}`
 	}
 	const results = await httpie.send('GET', url, {
-		headers: getAuthHeaders()
+		headers: {
+			...authHeaders,
+			'Content-Type': 'application/json',
+		},
 	}).catch(error => error)
 
 	if (!results.data || !results.data.success) {
@@ -81,7 +74,7 @@ const listKeys = async ({ prefix, cursor, page = 1 }) => {
 		const more = await listKeys({
 			prefix,
 			page: page + 1,
-			cursor: results.data.result_info.cursor
+			cursor: results.data.result_info.cursor,
 		})
 		keys.push(...more)
 	}
@@ -98,17 +91,17 @@ curl -X DELETE "https://api.cloudflare.com/client/v4/accounts/01a7362d577a6c3019
      --data '["My-Key"]'
 */
 const removeItems = async ({ prefix, files }) => {
-	const { accountId, authEmail, authKey, namespaceId } = initialize()
+	const { accountId, authHeaders, namespaceId } = initialize()
 	const url = `${CF_PREFIX}/${accountId}/storage/kv/namespaces/${namespaceId}/bulk`
 	for (const file of files) {
-		console.log('-', file)
+		console.log('-', (prefix || '') + file)
 	}
 	const results = await httpie.send('DELETE', url, {
 		headers: {
-			...getAuthHeaders(),
-			'Content-Type': 'application/json'
+			...authHeaders,
+			'Content-Type': 'application/json',
 		},
-		body: files
+		body: files.map(file => (prefix || '') + file),
 	}).catch(error => error)
 
 	if (!results.data || !results.data.success) {
@@ -130,7 +123,7 @@ The entire request size must be 100 megabytes or less.
 */
 const MAX_PAYLOAD = 99000000 // 100 but with a little space
 const putItems = async ({ prefix, folder, files }) => {
-	const detailedFiles = await promiseAll(files.map(file => async () => {
+	const detailedFiles = await Promise.all(files.map(async file => {
 		file.size = (await stat(path.join(folder, file.original))).size
 		if (file.size >= MAX_PAYLOAD) {
 			console.error('The maximum file size is 100 megabytes.', file)
@@ -147,29 +140,29 @@ const putItems = async ({ prefix, folder, files }) => {
 			lists[lists.length - 1].files.push(file)
 			lists[lists.length - 1].size += file.size
 			return lists
-		}, [ { size: 0, files: [] } ])
+		}, [{ size: 0, files: [] }])
 
-	const { accountId, authEmail, authKey, namespaceId } = initialize()
+	const { accountId, authHeaders, namespaceId } = initialize()
 	const url = `${CF_PREFIX}/${accountId}/storage/kv/namespaces/${namespaceId}/bulk`
 	for (const { files } of splitFiles) {
 		for (const file of files) {
-			console.log('-', file.original)
+			console.log('-', `${prefix || ''}${file.original}`)
 		}
-		const readFiles = await promiseAll(files.map(file => async () => {
+		const readFiles = await Promise.all(files.map(async file => {
 			file.value = await readFile(file.fullPath, 'base64')
 			return file
 		}))
 		const results = await httpie.send('PUT', url, {
 			headers: {
-				...getAuthHeaders(),
-				'Content-Type': 'application/json'
+				...authHeaders,
+				'Content-Type': 'application/json',
 			},
 			body: readFiles
 				.map(({ key, value }) => ({
 					key: `${prefix || ''}${key}`,
 					value,
-					base64: true
-				}))
+					base64: true,
+				})),
 		})
 		if (!results.data || !results.data.success) {
 			console.log('Error while writing Cloudflare KV entries:')
@@ -186,14 +179,14 @@ curl -X GET "https://api.cloudflare.com/client/v4/accounts/01a7362d577a6c3019a47
      -H "X-Auth-Email: user@example.com" \
      -H "X-Auth-Key: c2547eb745079dac9320b638f5e225cf483cc5cfdda41"
 */
-const getItem = async ({ prefix, key }) => {
-	const { accountId, authEmail, authKey, namespaceId } = initialize()
+const getItem = async ({ key }) => {
+	const { accountId, authHeaders, namespaceId } = initialize()
 	const url = `${CF_PREFIX}/${accountId}/storage/kv/namespaces/${namespaceId}/values/${key}`
 	const results = await httpie.send('GET', url, {
 		headers: {
-			...getAuthHeaders(),
-			'Content-Type': 'application/json'
-		}
+			...authHeaders,
+			'Content-Type': 'application/json',
+		},
 	})
 	return results.data
 }
@@ -208,27 +201,23 @@ curl -X PUT "https://api.cloudflare.com/client/v4/accounts/01a7362d577a6c3019a47
      --data '"Some Value"'
 */
 const putItem = async ({ key, value }) => {
-	const { accountId, authEmail, authKey, namespaceId } = initialize()
+	const { accountId, authHeaders, namespaceId } = initialize()
 	const url = `${CF_PREFIX}/${accountId}/storage/kv/namespaces/${namespaceId}/values/${key}`
 	const results = await httpie.send('PUT', url, {
 		headers: {
-			...getAuthHeaders(),
-			'Content-Type': 'application/json'
+			...authHeaders,
+			'Content-Type': 'application/json',
 		},
-		body: value
+		body: value,
 	})
 	return results.data
 }
 
 module.exports = {
 	getFileHashes: async ({ prefix, hash }) => {
-		let actualPrefix = prefix || ''
-		if (hash) {
-			actualPrefix = `${actualPrefix}:${hash}`
-		}
 		try {
 			const fileHashes = await getItem({
-				key: `${prefix || ''}${hash || 'hashes'}`
+				key: `${prefix || ''}${hash || 'hashes'}`,
 			})
 			return fileHashes
 				? JSON.parse(fileHashes)
@@ -241,13 +230,9 @@ module.exports = {
 		}
 	},
 	putFileHashes: async ({ prefix, hash, hashMap }) => {
-		let actualPrefix = prefix || ''
-		if (hash) {
-			actualPrefix = `${actualPrefix}:${hash}`
-		}
 		await putItem({
 			key: `${prefix || ''}${hash || 'hashes'}`,
-			value: hashMap
+			value: hashMap,
 		})
 	},
 	listKeys: async ({ prefix }) => {
@@ -258,5 +243,5 @@ module.exports = {
 	},
 	removeItems: async ({ prefix, files }) => {
 		return removeItems({ prefix, files })
-	}
+	},
 }

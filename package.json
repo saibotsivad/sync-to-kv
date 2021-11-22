@@ -7,12 +7,21 @@
     "type": "git",
     "url": "git+https://github.com/saibotsivad/sync-to-kv.git"
   },
+  "scripts": {
+    "test": "eslint '**/*.js'"
+  },
   "keywords": [
     "cloudflare",
-    "kv"
+    "kv",
+    "file",
+    "static"
   ],
-  "author": "saibotsivad",
-  "license": "VOL",
+  "author": {
+    "name": "Tobias Davis",
+    "email": "tobias@davistobias.com",
+    "url": "https://davistobias.com"
+  },
+  "license": "SEE LICENSE IN LICENSE.md",
   "bugs": {
     "url": "https://github.com/saibotsivad/sync-to-kv/issues"
   },
@@ -21,7 +30,9 @@
     "glob": "^7.1.6",
     "httpie": "^1.1.2",
     "many-file-hashes": "^0.5.0",
-    "p-all": "^3.0.0",
     "sade": "^1.7.3"
+  },
+  "devDependencies": {
+    "eslint": "^8.3.0"
   }
 }

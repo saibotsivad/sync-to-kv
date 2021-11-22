@@ -22,7 +22,7 @@ sade('sync-to-kv <folder>', true)
 		const localFiles = await getLocalFileList(folder, opts)
 		const fileHashes = (await manyFileHashes({
 			files: localFiles,
-			cwd: folder
+			cwd: folder,
 		})).map(file => {
 			file.key = encodeURIComponent(file.original)
 			return file
@@ -34,7 +34,7 @@ sade('sync-to-kv <folder>', true)
 		const fileKeysToRemove = Object
 			.keys(kvFileHashes)
 			.filter(key => !fileHashes.find(file => file.key === key))
-		
+
 		if (opts.dryrun) {
 			console.log('(Dry run, no files will be modified.)')
 			console.log(logger('Upload', filesToUpload))
@@ -55,12 +55,11 @@ sade('sync-to-kv <folder>', true)
 						map[key] = hash
 						return map
 					}, {}),
-				...opts
+				...opts,
 			})
 		}
 	})
 	.parse(process.argv)
 	.catch(error => {
-		console.log('-------------ERROR-------------')
-		console.error(error)
+		console.error('Runtime error:', error)
 	})
