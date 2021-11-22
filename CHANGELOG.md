@@ -18,6 +18,12 @@ Change categories are:
 
 - N/A
 
+## [0.0.1] - 2021-11-22
+### Fixed
+- During first run, hashes not set was throwing an error. Thanks @TehShrike ❤️
+### Security
+- Can now use either global or custom API token, instead of only the global. Thanks @TehShrike ❤️
+
 ## [0.0.0] - 2020-08-17
 ### Added
 - Initialized the CLI tooling. 🎉

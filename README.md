@@ -2,11 +2,17 @@
 
 Push the contents of a folder to Cloudflare KV.
 
-If you have a nice little static website, and you want
-to host the files somewhere, you can shove them in CFKV
-to be accessed by a small fast Worker.
+If you have a nice little static website, and you want to host the files somewhere, you can shove them in CFKV to be accessed by a small fast Worker.
 
-## how to use
+## Install
+
+The usual way (global for CLI access):
+
+```shell
+npm install -g sync-to-kv
+```
+
+## How to Use
 
 You will need the KV "Namespace ID", and some environment variables:
 
@@ -14,8 +20,8 @@ You will need the KV "Namespace ID", and some environment variables:
 * `CF_ACCOUNT_ID` - Your Cloudflare account id.
 * `CF_NAMESPACE_ID` - The "Namespace ID" of that KV store.
 * One of these:
-  * `CF_AUTH_KEY` - Your global API key
-  * `CF_API_TOKEN` - A [generated API token](https://dash.cloudflare.com/profile/api-tokens) with Workers/KV storage permissions
+  * `CF_AUTH_KEY` - Your global API key.
+  * `CF_API_TOKEN` - A [generated API token](https://dash.cloudflare.com/profile/api-tokens) with Workers/KV storage permissions.
 
 Then you simply run the command like this:
 
@@ -23,7 +29,7 @@ Then you simply run the command like this:
 sync-to-kv ./path/to/folder
 ```
 
-## additional options
+## Additional Options
 
 You can run `--help` for more details, but the flags you can pass in are:
 
@@ -33,7 +39,7 @@ You can run `--help` for more details, but the flags you can pass in are:
 * `-h`, `--hash` *(default `hashes`)* : Name used to store the dictionary hash map of key names to hashes, which is used to improve upload time.
 * `-d`, `--dryrun` : Just print out what would have been updated or removed, but do not actually update KV.
 
-## examples
+## Examples
 
 If you have a folder like `site` and you want to exclude all `*.test.js` files, you would write something like:
 
@@ -41,7 +47,7 @@ If you have a folder like `site` and you want to exclude all `*.test.js` files, 
 sync-to-kv ./site -i '**/*.test.js'
 ```
 
-If you have multiple sites in one KV store, it might be good to store them by domain name, so your `--prefix` would be the domain.
+If you have multiple sites in one KV store, it might be good to store them by domain name, so your `--prefix` would be the domain:
 
 ```bash
 sync-to-kv ./site -p site.com
@@ -59,6 +65,6 @@ sync-to-kv ./site \
   -h 'hashmap'
 ```
 
-## license
+## License
 
 Published and released under the [Very Open License](http://veryopenlicense.com).
