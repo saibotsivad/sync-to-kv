@@ -9,10 +9,12 @@ const envToProp = {
 	CF_AUTH_EMAIL: 'authEmail',
 	CF_AUTH_KEY: 'authKey',
 	CF_ACCOUNT_ID: 'accountId',
+	CF_API_TOKEN: 'apiToken',
 	CF_NAMESPACE_ID: 'namespaceId'
 }
 
-const alwaysRequired = [ 'authEmail', 'authKey', 'accountId', 'namespaceId' ]
+const alwaysRequired = [ 'authEmail', 'accountId', 'namespaceId' ]
+const oneOfIsRequired = [ 'authKey', 'apiToken' ]
 
 const initialize = moreRequired => {
 	const opts = Object
@@ -28,7 +30,24 @@ const initialize = moreRequired => {
 		console.error(`The following options must be set as environment variables or parameters: ${required.join(', ')}`)
 		process.exit(1)
 	}
+	if (!oneOfIsRequired.some(key => opts[key])) {
+		console.error(`One of the following options must be set as an environment variable or parameter: ${oneOfIsRequired.join(', ')}`)
+		process.exit(1)
+	}
 	return opts
+}
+
+const getAuthHeaders = () => {
+	const { authEmail, authKey, apiToken } = initialize()
+
+	const authHeader = apiToken
+		? { 'Authorization': 'Bearer ' + apiToken }
+		: { 'X-Auth-Key': authKey }
+
+	return {
+		'X-Auth-Email': authEmail,
+		...authHeader
+	}
 }
 
 /*
@@ -48,10 +67,7 @@ const listKeys = async ({ prefix, cursor, page = 1 }) => {
 		url += `&prefix=${prefix}`
 	}
 	const results = await httpie.send('GET', url, {
-		headers: {
-			'X-Auth-Email': authEmail,
-			'X-Auth-Key': authKey
-		}
+		headers: getAuthHeaders()
 	}).catch(error => error)
 
 	if (!results.data || !results.data.success) {
@@ -89,8 +105,7 @@ const removeItems = async ({ prefix, files }) => {
 	}
 	const results = await httpie.send('DELETE', url, {
 		headers: {
-			'X-Auth-Email': authEmail,
-			'X-Auth-Key': authKey,
+			...getAuthHeaders(),
 			'Content-Type': 'application/json'
 		},
 		body: files
@@ -146,8 +161,7 @@ const putItems = async ({ prefix, folder, files }) => {
 		}))
 		const results = await httpie.send('PUT', url, {
 			headers: {
-				'X-Auth-Email': authEmail,
-				'X-Auth-Key': authKey,
+				...getAuthHeaders(),
 				'Content-Type': 'application/json'
 			},
 			body: readFiles
@@ -177,8 +191,7 @@ const getItem = async ({ prefix, key }) => {
 	const url = `${CF_PREFIX}/${accountId}/storage/kv/namespaces/${namespaceId}/values/${key}`
 	const results = await httpie.send('GET', url, {
 		headers: {
-			'X-Auth-Email': authEmail,
-			'X-Auth-Key': authKey,
+			...getAuthHeaders(),
 			'Content-Type': 'application/json'
 		}
 	})
@@ -199,8 +212,7 @@ const putItem = async ({ key, value }) => {
 	const url = `${CF_PREFIX}/${accountId}/storage/kv/namespaces/${namespaceId}/values/${key}`
 	const results = await httpie.send('PUT', url, {
 		headers: {
-			'X-Auth-Email': authEmail,
-			'X-Auth-Key': authKey,
+			...getAuthHeaders(),
 			'Content-Type': 'application/json'
 		},
 		body: value
