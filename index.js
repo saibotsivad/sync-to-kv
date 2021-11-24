@@ -62,4 +62,5 @@ sade('sync-to-kv <folder>', true)
 	.parse(process.argv)
 	.catch(error => {
 		console.error('Runtime error:', error)
+		process.exit(1)
 	})
