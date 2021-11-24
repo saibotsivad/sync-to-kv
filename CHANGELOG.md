@@ -18,6 +18,10 @@ Change categories are:
 
 - N/A
 
+## [0.0.2] - 2021-11-24
+### Changed
+- If the CLI framework (sade) throws, exit with non-zero. Thanks @TehShrike
+
 ## [0.0.1] - 2021-11-22
 ### Fixed
 - Prefixes not handled correctly on item removal.
@@ -30,4 +34,6 @@ Change categories are:
 - Initialized the CLI tooling. 🎉
 
 [Unreleased]: https://github.com/saibotsivad/sync-to-kv/compare/v0.0.0...HEAD
+[0.0.2]: https://github.com/saibotsivad/sync-to-kv/compare/v0.0.1...v0.0.2
+[0.0.1]: https://github.com/saibotsivad/sync-to-kv/compare/v0.0.0...v0.0.1
 [0.0.0]: https://github.com/saibotsivad/sync-to-kv/compare/3c2f8515a06c0763d63390aaf8a12a02e0219261...v0.0.0
