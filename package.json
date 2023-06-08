@@ -1,6 +1,6 @@
 {
   "name": "sync-to-kv",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Push the contents of a folder to Cloudflare KV.",
   "bin": "index.js",
   "repository": {
