@@ -18,6 +18,12 @@ Change categories are:
 
 - N/A
 
+## [0.0.3] - 2023-06-07
+### Added
+- Support for `CLOUDFLARE_` prefixed environment variables.
+### Fixed
+- Some error handling.
+
 ## [0.0.2] - 2021-11-24
 ### Changed
 - If the CLI framework (sade) throws, exit with non-zero. Thanks @TehShrike

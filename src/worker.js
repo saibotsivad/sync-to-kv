@@ -4,26 +4,36 @@ const path = require('path')
 
 const CF_PREFIX = 'https://api.cloudflare.com/client/v4/accounts'
 
-const envToProp = {
+const envToPropLegacy = {
 	CF_AUTH_EMAIL: 'authEmail',
 	CF_AUTH_KEY: 'authKey',
 	CF_ACCOUNT_ID: 'accountId',
 	CF_API_TOKEN: 'apiToken',
 	CF_NAMESPACE_ID: 'namespaceId',
 }
+const envToProp = {
+	CLOUDFLARE_AUTH_EMAIL: 'authEmail',
+	CLOUDFLARE_AUTH_KEY: 'authKey',
+	CLOUDFLARE_ACCOUNT_ID: 'accountId',
+	CLOUDFLARE_API_TOKEN: 'apiToken',
+	CLOUDFLARE_NAMESPACE_ID: 'namespaceId',
+}
 
-const alwaysRequired = [ 'authEmail', 'accountId', 'namespaceId' ]
+const alwaysRequired = [ 'accountId', 'namespaceId' ]
 const oneOfIsRequired = [ 'authKey', 'apiToken' ]
 
 const initialize = moreRequired => {
 	const opts = Object
-		.keys(envToProp)
+		.keys(envToPropLegacy)
 		.reduce((map, key) => {
 			if (process.env[key]) {
-				map[envToProp[key]] = process.env[key]
+				map[envToPropLegacy[key]] = process.env[key]
 			}
 			return map
 		}, {})
+	for (const key in envToProp) {
+		if (process.env[key]) opts[envToProp[key]] = process.env[key]
+	}
 	const required = [ ...alwaysRequired, ...(moreRequired || []) ]
 	if (!required.every(key => opts[key])) {
 		console.error(`The following options must be set as environment variables or parameters: ${required.join(', ')}`)
@@ -33,11 +43,18 @@ const initialize = moreRequired => {
 		console.error(`One of the following options must be set as an environment variable or parameter: ${oneOfIsRequired.join(', ')}`)
 		process.exit(1)
 	}
-	opts.authHeaders = opts.apiToken
-		? { 'Authorization': 'Bearer ' + opts.apiToken }
-		: { 'X-Auth-Key': opts.authKey }
-	opts.authHeaders['X-Auth-Email'] = opts.authEmail
+	opts.authHeaders = {}
+	if (opts.apiToken) opts.authHeaders['Authorization'] = `Bearer ${opts.apiToken}`
+	else if (opts.authKey && opts.authEmail) {
+		opts.authHeaders['X-Auth-Key'] = opts.authKey
+		opts.authHeaders['X-Auth-Email'] = opts.authEmail
+	}
 	return opts
+}
+
+const handleHttpError = message => response => {
+	console.error(message + ':', response.statusCode, response.data)
+	process.exit(1)
 }
 
 /*
@@ -61,13 +78,7 @@ const listKeys = async ({ prefix, cursor, page = 1 }) => {
 			...authHeaders,
 			'Content-Type': 'application/json',
 		},
-	}).catch(error => error)
-
-	if (!results.data || !results.data.success) {
-		console.log('Error while listing Cloudflare KV entries:')
-		console.error(results.data || results)
-		process.exit(1)
-	}
+	}).catch(handleHttpError('Error while listing Cloudflare KV entries'))
 
 	const keys = (results.data.result || []).map(item => item.name)
 	if (results.data && results.data.result_info && results.data.result_info.cursor) {
@@ -96,24 +107,18 @@ const removeItems = async ({ prefix, files }) => {
 	for (const file of files) {
 		console.log('-', (prefix || '') + file)
 	}
-	const results = await httpie.send('DELETE', url, {
+	await httpie.send('DELETE', url, {
 		headers: {
 			...authHeaders,
 			'Content-Type': 'application/json',
 		},
 		body: files.map(file => (prefix || '') + file),
-	}).catch(error => error)
-
-	if (!results.data || !results.data.success) {
-		console.log('Error while removing Cloudflare KV entries:')
-		console.error(results.data || results)
-		process.exit(1)
-	}
+	}).catch(handleHttpError('Error while removing Cloudflare KV entries'))
 }
 
 /*
-https://api.cloudflare.com/#workers-kv-namespace-write-multiple-key-value-pairs
-PUT accounts/:account_identifier/storage/kv/namespaces/:namespace_identifier/bulk
+https://developers.cloudflare.com/api/operations/workers-kv-namespace-write-multiple-key-value-pairs
+PUT /client/v4/accounts/{account_identifier}/storage/kv/namespaces/{namespace_identifier}/bulk
 curl -X PUT "https://api.cloudflare.com/client/v4/accounts/01a7362d577a6c3019a474fd6f485823/storage/kv/namespaces/0f2ac74b498b48028cb68387c421e279/bulk" \
      -H "X-Auth-Email: user@example.com" \
      -H "X-Auth-Key: c2547eb745079dac9320b638f5e225cf483cc5cfdda41" \
@@ -152,7 +157,7 @@ const putItems = async ({ prefix, folder, files }) => {
 			file.value = await readFile(file.fullPath, 'base64')
 			return file
 		}))
-		const results = await httpie.send('PUT', url, {
+		await httpie.send('PUT', url, {
 			headers: {
 				...authHeaders,
 				'Content-Type': 'application/json',
@@ -163,18 +168,13 @@ const putItems = async ({ prefix, folder, files }) => {
 					value,
 					base64: true,
 				})),
-		})
-		if (!results.data || !results.data.success) {
-			console.log('Error while writing Cloudflare KV entries:')
-			console.error(results.data || results)
-			process.exit(1)
-		}
+		}).catch(handleHttpError('Error while writing Cloudflare KV entries'))
 	}
 }
 
 /*
-https://api.cloudflare.com/#workers-kv-namespace-read-key-value-pair
-GET accounts/:account_identifier/storage/kv/namespaces/:namespace_identifier/values/:key_name
+https://developers.cloudflare.com/api/operations/workers-kv-namespace-read-key-value-pair
+GET /client/v4/accounts/{account_identifier}/storage/kv/namespaces/{namespace_identifier}/values/{key_name}
 curl -X GET "https://api.cloudflare.com/client/v4/accounts/01a7362d577a6c3019a474fd6f485823/storage/kv/namespaces/0f2ac74b498b48028cb68387c421e279/values/My-Key" \
      -H "X-Auth-Email: user@example.com" \
      -H "X-Auth-Key: c2547eb745079dac9320b638f5e225cf483cc5cfdda41"
@@ -209,7 +209,7 @@ const putItem = async ({ key, value }) => {
 			'Content-Type': 'application/json',
 		},
 		body: value,
-	})
+	}).catch(handleHttpError('Error while upserting single item'))
 	return results.data
 }
 

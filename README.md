@@ -16,12 +16,15 @@ npm install -g sync-to-kv
 
 You will need the KV "Namespace ID", and some environment variables:
 
-* `CF_AUTH_EMAIL` - Your Cloudflare account email address.
 * `CF_ACCOUNT_ID` - Your Cloudflare account id.
 * `CF_NAMESPACE_ID` - The "Namespace ID" of that KV store.
-* One of these:
-  * `CF_AUTH_KEY` - Your global API key.
+* Either this one (recommended):
   * `CF_API_TOKEN` - A [generated API token](https://dash.cloudflare.com/profile/api-tokens) with Workers/KV storage permissions.
+* Or this one:
+  * `CF_AUTH_EMAIL` - Your Cloudflare account email address.
+  * `CF_AUTH_KEY` - Your global API key.
+
+(Note: the `CLOUDFLARE_` prefix is also supported.)
 
 Then you simply run the command like this:
 
